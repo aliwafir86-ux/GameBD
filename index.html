@@ -2,24 +2,23 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Ekspresi Bisnis Digital</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Ekspresi Wajah - Bisnis Digital</title>
+    <!-- EmailJS Library -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-
+    <!-- Face API Library untuk Deteksi Ekspresi Wajah -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script type="text/javascript">
         (function() {
             emailjs.init("otCenKTapmYBws_fd");
         })();
     </script>
-
     <style>
         * {
             box-sizing: border-box;
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, sans-serif;
             margin: 0;
             padding: 0;
-            user-select: none;
         }
 
         body {
@@ -29,13 +28,13 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px;
+            padding: 15px;
         }
 
         .container {
             background: #1e293b;
             width: 100%;
-            max-width: 600px;
+            max-width: 700px;
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.5);
             overflow: hidden;
@@ -43,7 +42,7 @@
         }
 
         .screen {
-            padding: 20px;
+            padding: 25px;
             display: none;
         }
 
@@ -55,7 +54,6 @@
             color: #38bdf8;
             text-align: center;
             margin-bottom: 15px;
-            font-size: 22px;
         }
 
         .form-group {
@@ -67,7 +65,6 @@
             margin-bottom: 8px;
             font-weight: bold;
             color: #cbd5e1;
-            font-size: 14px;
         }
 
         input[type="text"] {
@@ -80,53 +77,55 @@
             font-size: 16px;
         }
 
+        input[type="text"]:focus {
+            border-color: #38bdf8;
+            outline: none;
+        }
+
         button.btn-main {
             width: 100%;
             background: #f43f5e;
             color: white;
             border: none;
             padding: 14px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             border-radius: 10px;
             cursor: pointer;
-            transition: 0.2s;
-            margin-top: 10px;
+            transition: 0.3s;
         }
 
-        button.btn-main:disabled {
-            background: #475569;
-            cursor: not-allowed;
-            opacity: 0.6;
+        button.btn-main:hover {
+            background: #e11d48;
         }
 
-        button.btn-main:active {
-            transform: scale(0.98);
-        }
-
+        /* Header Game */
         .game-header {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
             background: #0f172a;
-            padding: 10px 12px;
+            padding: 12px 15px;
             border-radius: 10px;
-            margin-bottom: 12px;
-            font-size: 13px;
+            margin-bottom: 15px;
+            font-size: 15px;
             border: 1px solid #334155;
         }
 
-        .timer-box { color: #f43f5e; }
+        .timer-box {
+            color: #f43f5e;
+        }
 
+        /* Camera Box */
         .camera-wrapper {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 220px;
             background: #000;
-            border-radius: 12px;
+            border-radius: 15px;
             overflow: hidden;
-            margin-bottom: 12px;
-            border: 2px solid #38bdf8;
+            margin-bottom: 15px;
+            border: 3px solid #38bdf8;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -136,63 +135,58 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1);
+            transform: scaleX(-1); /* Mirror effect */
         }
 
         .expression-overlay {
             position: absolute;
-            bottom: 8px;
-            background: rgba(0,0,0,0.85);
-            padding: 6px 12px;
-            border-radius: 15px;
+            bottom: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
             font-weight: bold;
             color: #38bdf8;
-            font-size: 13px;
+            font-size: 16px;
             border: 1px solid #38bdf8;
-            text-align: center;
-            width: 90%;
         }
 
+        /* Question Box */
         .question-box {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             color: #f8fafc;
-            margin-bottom: 10px;
-            min-height: 40px;
+            margin-bottom: 12px;
+            min-height: 45px;
         }
 
         .options-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
         .opt-card {
             background: #0f172a;
             border: 2px solid #334155;
-            padding: 12px;
+            padding: 10px;
             border-radius: 10px;
             font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.2s ease;
-            cursor: pointer;
+            transition: 0.3s;
         }
 
         .opt-card.active-exp {
             border-color: #38bdf8;
             background: #1e3a5f;
-            box-shadow: 0 0 15px #38bdf8;
-            transform: scale(1.02);
+            box-shadow: 0 0 10px #38bdf8;
         }
 
         .opt-tag {
-            padding: 4px 8px;
-            border-radius: 6px;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 5px;
             font-weight: bold;
-            font-size: 11px;
-            white-space: nowrap;
+            font-size: 12px;
+            margin-bottom: 5px;
         }
 
         .tag-a { background: #22c55e; color: #000; }
@@ -200,9 +194,24 @@
         .tag-c { background: #eab308; color: #000; }
         .tag-d { background: #a855f7; color: #fff; }
 
-        .result-box { text-align: center; padding: 15px 0; }
-        .score-big { font-size: 42px; color: #38bdf8; font-weight: bold; margin: 10px 0; }
-        .status-msg { margin-top: 15px; font-style: italic; color: #94a3b8; font-size: 13px; }
+        /* Result Screen */
+        .result-box {
+            text-align: center;
+            padding: 15px 0;
+        }
+
+        .score-big {
+            font-size: 48px;
+            color: #38bdf8;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .status-msg {
+            margin-top: 15px;
+            font-style: italic;
+            color: #94a3b8;
+        }
     </style>
 </head>
 <body>
@@ -211,22 +220,20 @@
 
     <!-- 1. LAYAR START -->
     <div id="start-screen" class="screen active">
-        <h1>📸 Game Ekspresi Bisnis</h1>
-        <p style="text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 13px;">
-            <b>CARA BERMAIN:</b><br>
-            1. Buat ekspresi secara <b>sengaja</b> untuk memilih pilihan.<br>
-            2. Wajah netral/diam <b>TIDAK AKAN</b> memilih apa-apa.<br>
-            3. Tekan tombol <b>KIRIM JAWABAN</b> jika sudah yakin!<br><br>
-            😃 <b>A: Senang (Senyum Lebar)</b><br>
-            ☹️ <b>B: Cemberut (Turunkan Sudut Bibir)</b><br>
-            😐 <b>C: Manyun (Kuncupkan Bibir)</b><br>
-            😮 <b>D: Kaget (Buka Mulut Lebar)</b>
+        <h1>📸 Game Ekspresi Bisnis Digital</h1>
+        <p style="text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 14px;">
+            Jawab soal dengan mengubah **Ekspresi Wajah** Anda di depan kamera!<br><br>
+            😃 <b>A: Senang</b> (Tersenyum)<br>
+            ☹️ <b>B: Cemberut</b> (Sedih/Cemberut)<br>
+            😐 <b>C: Manyun</b> (Datar/Biasa)<br>
+            😮 <b>D: Kaget</b> (Mulut Terbuka)
         </p>
         <div class="form-group">
-            <label for="username">Nama Lengkap / Username:</label>
+            <label for="username">Masukkan Nama Lengkap / Username:</label>
             <input type="text" id="username" placeholder="Contoh: Budi_X_BD1" required>
         </div>
-        <button id="start-btn" class="btn-main" onclick="initGame()">Izinkan Kamera & Mulai 🚀</button>
+        <button id="start-btn" class="btn-main" onclick="initCameraAndStart()">Izinkan Kamera & Mulai 🚀</button>
+        <p id="cam-status" style="text-align: center; font-size: 12px; margin-top: 10px; color: #eab308;"></p>
     </div>
 
     <!-- 2. LAYAR GAME -->
@@ -234,37 +241,38 @@
         <div class="game-header">
             <div>Pemain: <span id="player-name" style="color: #38bdf8;">-</span></div>
             <div>Soal: <span id="q-number">1</span>/10</div>
-            <div class="timer-box" id="timer-container">⏱️ <span id="timer-val">20</span>s</div>
+            <div class="timer-box">⏱️ <span id="timer-val">10</span>s</div>
             <div>Skor: <span id="score-val">0</span></div>
         </div>
 
+        <!-- Area Kamera -->
         <div class="camera-wrapper">
-            <video id="video" autoplay playsinline muted></video>
-            <div class="expression-overlay" id="exp-detected">Posisikan wajah...</div>
+            <video id="video" autoplay muted></video>
+            <div class="expression-overlay" id="exp-detected">Mendeteksi Wajah...</div>
         </div>
 
+        <!-- Area Soal -->
         <div class="question-box" id="question-text">Loading Soal...</div>
 
+        <!-- Pilihan Ekspresi -->
         <div class="options-grid">
-            <div class="opt-card" id="card-a" onclick="manualSelect('A')">
+            <div class="opt-card" id="card-a">
                 <span class="opt-tag tag-a">A 😃 Senang</span>
                 <div id="opt-a-text">...</div>
             </div>
-            <div class="opt-card" id="card-b" onclick="manualSelect('B')">
+            <div class="opt-card" id="card-b">
                 <span class="opt-tag tag-b">B ☹️ Cemberut</span>
                 <div id="opt-b-text">...</div>
             </div>
-            <div class="opt-card" id="card-c" onclick="manualSelect('C')">
+            <div class="opt-card" id="card-c">
                 <span class="opt-tag tag-c">C 😐 Manyun</span>
                 <div id="opt-c-text">...</div>
             </div>
-            <div class="opt-card" id="card-d" onclick="manualSelect('D')">
+            <div class="opt-card" id="card-d">
                 <span class="opt-tag tag-d">D 😮 Kaget</span>
                 <div id="opt-d-text">...</div>
             </div>
         </div>
-
-        <button id="submit-btn" class="btn-main" onclick="confirmAnswer()" disabled>Buat Ekspresi / Klik Pilihan...</button>
     </div>
 
     <!-- 3. LAYAR HASIL -->
@@ -299,132 +307,92 @@
     let score = 0;
     let correctCount = 0;
     let username = "";
-    let answerTimer = 20;
+    let timer = 10;
     let timerInterval = null;
-    let canAnswer = false;
-    let faceMesh = null;
-    let isProcessing = false;
-    let streamInstance = null;
-    let selectedChoice = "";
+    let faceDetectionInterval = null;
+    let canAnswer = true;
+    let currentExpression = "";
 
-    function setupFaceMesh() {
-        faceMesh = new FaceMesh({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-        });
-
-        faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.7,
-            minTrackingConfidence: 0.7
-        });
-
-        faceMesh.onResults(onResults);
+    // Load AI Face Models
+    async function loadModels() {
+        const camStatus = document.getElementById("cam-status");
+        camStatus.innerText = "⏳ Memuat AI Model Deteksi Wajah...";
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+        camStatus.innerText = "✅ AI Siap! Klik tombol di atas untuk mulai.";
     }
+    loadModels();
 
-    async function initGame() {
+    async function initCameraAndStart() {
         const inputName = document.getElementById("username").value.trim();
         if (inputName === "") {
             alert("Harap masukkan nama/username terlebih dahulu!");
             return;
         }
-
         username = inputName;
-        document.getElementById("player-name").innerText = username;
 
-        setupFaceMesh();
-
-        const videoElement = document.getElementById("video");
-
+        const video = document.getElementById("video");
         try {
-            streamInstance = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-                audio: false
-            });
-            videoElement.srcObject = streamInstance;
-            
-            videoElement.onloadedmetadata = () => {
-                videoElement.play();
-                switchScreen("game-screen");
-                loadQuestion();
-                processVideoFrame();
-            };
+            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+            video.srcObject = stream;
         } catch (err) {
-            alert("Gagal mengakses kamera! Pastikan izin kamera telah diberikan.");
-        }
-    }
-
-    async function processVideoFrame() {
-        const videoElement = document.getElementById("video");
-        if (videoElement && videoElement.readyState >= 2 && faceMesh && !isProcessing) {
-            isProcessing = true;
-            await faceMesh.send({ image: videoElement });
-            isProcessing = false;
-        }
-        requestAnimationFrame(processVideoFrame);
-    }
-
-    function onResults(results) {
-        if (!canAnswer) return;
-
-        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-            document.getElementById("exp-detected").innerText = "⚠️ Posisikan Wajah ke Kamera";
+            alert("Kamera tidak diizinkan atau tidak ditemukan!");
             return;
         }
 
-        const landmarks = results.multiFaceLandmarks[0];
-
-        // Titik Landmark Penting
-        const upperLip = landmarks[13];
-        const lowerLip = landmarks[14];
-        const leftCorner = landmarks[61];
-        const rightCorner = landmarks[291];
-        const nose = landmarks[1];
-        const chin = landmarks[152];
-
-        // Hitung jarak terstandar berdasarkan tinggi hidung-dagu
-        const faceHeight = Math.hypot(nose.x - chin.x, nose.y - chin.y);
-        
-        const mouthOpenRatio = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y) / faceHeight;
-        const mouthWidthRatio = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y) / faceHeight;
-        const cornerAvgY = (leftCorner.y + rightCorner.y) / 2;
-        const smileDiffRatio = (nose.y - cornerAvgY) / faceHeight;
-
-        let detected = "";
-
-        // THRESHOLD SANGAT STRICT (TIDAK AKAN TERUJI SAAT NETRAL)
-        if (mouthOpenRatio > 0.40) {
-            detected = "D"; // Kaget (Mulut sangat terbuka)
-        } else if (mouthWidthRatio > 1.25) {
-            detected = "A"; // Senang (Senyum sangat lebar)
-        } else if (smileDiffRatio < -0.65) {
-            detected = "B"; // Cemberut (Hanya jika sudut bibir benar-benar ditarik turun)
-        } else if (mouthWidthRatio < 0.65 && mouthOpenRatio < 0.15) {
-            detected = "C"; // Manyun (Bibir kuncup rapat)
-        }
-
-        if (detected !== "") {
-            manualSelect(detected);
-        } else if (selectedChoice === "") {
-            document.getElementById("exp-detected").innerText = "😐 Wajah Netral (Silakan Tunjukkan Ekspresi)";
-        }
+        document.getElementById("player-name").innerText = username;
+        switchScreen("game-screen");
+        startFaceDetection();
+        loadQuestion();
     }
 
-    function manualSelect(choice) {
-        selectedChoice = choice;
-        highlightCard(choice);
-        
-        const btn = document.getElementById("submit-btn");
-        btn.disabled = false;
-        btn.innerText = `Kirim Jawaban (${choice}) 🚀`;
+    function startFaceDetection() {
+        const video = document.getElementById("video");
+        faceDetectionInterval = setInterval(async () => {
+            if (!canAnswer) return;
 
-        let expName = "";
-        if(choice === "A") expName = "😃 Senang (A)";
-        if(choice === "B") expName = "☹️ Cemberut (B)";
-        if(choice === "C") expName = "😐 Manyun (C)";
-        if(choice === "D") expName = "😮 Kaget (D)";
-        
-        document.getElementById("exp-detected").innerText = `Terpilih: ${expName}`;
+            const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+            if (detections) {
+                const exp = detections.expressions;
+                let maxExp = "neutral";
+                let maxVal = 0;
+
+                for (const [e, val] of Object.entries(exp)) {
+                    if (val > maxVal) {
+                        maxVal = val;
+                        maxExp = e;
+                    }
+                }
+
+                // Pemetaan Ekspresi Wajah ke Pilihan A, B, C, D
+                let detectedChoice = "";
+                let expText = "";
+
+                if (exp.happy > 0.5) {
+                    detectedChoice = "A";
+                    expText = "😃 Senang (Pilihan A)";
+                } else if (exp.sad > 0.4 || exp.disgusted > 0.4) {
+                    detectedChoice = "B";
+                    expText = "☹️ Cemberut (Pilihan B)";
+                } else if (exp.neutral > 0.6) {
+                    detectedChoice = "C";
+                    expText = "😐 Manyun/Datar (Pilihan C)";
+                } else if (exp.surprised > 0.4) {
+                    detectedChoice = "D";
+                    expText = "😮 Kaget (Pilihan D)";
+                } else {
+                    expText = "🔍 Mencari Ekspresi...";
+                }
+
+                document.getElementById("exp-detected").innerText = expText;
+                highlightCard(detectedChoice);
+
+                if (detectedChoice !== "") {
+                    submitAnswer(detectedChoice);
+                }
+            }
+        }, 400);
     }
 
     function highlightCard(choice) {
@@ -437,8 +405,6 @@
 
     function loadQuestion() {
         canAnswer = true;
-        selectedChoice = "";
-        
         const qData = questions[currentQ];
         document.getElementById("q-number").innerText = currentQ + 1;
         document.getElementById("score-val").innerText = score;
@@ -450,36 +416,38 @@
         document.getElementById("opt-d-text").innerText = qData.options[3];
 
         highlightCard("");
-        
-        const btn = document.getElementById("submit-btn");
-        btn.disabled = true;
-        btn.innerText = "Buat Ekspresi / Klik Pilihan...";
-
-        document.getElementById("exp-detected").innerText = "😐 Wajah Netral (Silakan Tunjukkan Ekspresi)";
-
-        answerTimer = 20;
-        document.getElementById("timer-val").innerText = answerTimer;
 
         clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            answerTimer--;
-            document.getElementById("timer-val").innerText = answerTimer;
+        timer = 10;
+        document.getElementById("timer-val").innerText = timer;
 
-            if (answerTimer <= 0) {
+        timerInterval = setInterval(() => {
+            timer--;
+            document.getElementById("timer-val").innerText = timer;
+            if (timer <= 0) {
                 clearInterval(timerInterval);
                 handleTimeout();
             }
         }, 1000);
     }
 
-    function confirmAnswer() {
-        if (!canAnswer || selectedChoice === "") return;
+    function handleTimeout() {
+        if (!canAnswer) return;
+        canAnswer = false;
+        score -= 10;
+        document.getElementById("score-val").innerText = score;
+        document.getElementById("exp-detected").innerText = "⏰ WAKTU HABIS (-10 Poin)";
+        setTimeout(nextQuestion, 1500);
+    }
+
+    function submitAnswer(choice) {
+        if (!canAnswer) return;
         canAnswer = false;
         clearInterval(timerInterval);
 
         const correctAns = questions[currentQ].ans;
 
-        if (selectedChoice === correctAns) {
+        if (choice === correctAns) {
             score += 10;
             correctCount++;
             document.getElementById("exp-detected").innerText = "✅ JAWABAN BENAR! (+10 Poin)";
@@ -489,15 +457,6 @@
         }
 
         document.getElementById("score-val").innerText = score;
-        setTimeout(nextQuestion, 1500);
-    }
-
-    function handleTimeout() {
-        if (!canAnswer) return;
-        canAnswer = false;
-        score -= 10;
-        document.getElementById("score-val").innerText = score;
-        document.getElementById("exp-detected").innerText = "⏰ WAKTU HABIS (-10 Poin)";
         setTimeout(nextQuestion, 1500);
     }
 
@@ -512,8 +471,12 @@
 
     function endGame() {
         clearInterval(timerInterval);
-        if (streamInstance) {
-            streamInstance.getTracks().forEach(track => track.stop());
+        clearInterval(faceDetectionInterval);
+
+        // Matikan Kamera
+        const video = document.getElementById("video");
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
         }
 
         switchScreen("result-screen");
