@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Ekspresi Bisnis Digital</title>
+    <!-- EmailJS Library -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    
+    <!-- Google MediaPipe Camera & Face Mesh -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+        (function() {
+            emailjs.init("otCenKTapmYBws_fd");
+        })();
+    </script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .container {
+            background: #1e293b;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        .screen {
+            padding: 20px;
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        h1, h2 {
+            color: #38bdf8;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        button.btn-main {
+            width: 100%;
+            background: #f43f5e;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button.btn-main:active {
+            transform: scale(0.98);
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            background: #0f172a;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            border: 1px solid #334155;
+        }
+
+        .timer-box { color: #f43f5e; }
+
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            border: 2px solid #38bdf8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .expression-overlay {
+            position: absolute;
+            bottom: 8px;
+            background: rgba(0,0,0,0.85);
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            color: #38bdf8;
+            font-size: 13px;
+            border: 1px solid #38bdf8;
+            text-align: center;
+            width: 90%;
+        }
+
+        .question-box {
+            font-size: 15px;
+            font-weight: bold;
+            color: #f8fafc;
+            margin-bottom: 10px;
+            min-height: 40px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .opt-card {
+            background: #0f172a;
+            border: 2px solid #334155;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .opt-card.active-exp {
+            border-color: #38bdf8;
+            background: #1e3a5f;
+            box-shadow: 0 0 15px #38bdf8;
+            opacity: 1;
+            transform: scale(1.02);
+        }
+
+        .opt-tag {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .tag-a { background: #22c55e; color: #000; }
+        .tag-b { background: #3b82f6; color: #fff; }
+        .tag-c { background: #eab308; color: #000; }
+        .tag-d { background: #a855f7; color: #fff; }
+
+        .result-box { text-align: center; padding: 15px 0; }
+        .score-big { font-size: 42px; color: #38bdf8; font-weight: bold; margin: 10px 0; }
+        .status-msg { margin-top: 15px; font-style: italic; color: #94a3b8; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- 1. LAYAR START -->
+    <div id="start-screen" class="screen active">
+        <h1>📸 Game Ekspresi Bisnis</h1>
+        <p style="text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 13px;">
+            <b>CARA BERMAIN:</b><br>
+            1. Diberi waktu <b>10 detik persiapan</b> untuk membaca soal.<br>
+            2. Diberi waktu <b>10 detik menjawab</b> menggunakan ekspresi wajah:<br><br>
+            😃 <b>A: Senang (Tersenyum Lebar)</b><br>
+            ☹️ <b>B: Cemberut (Sudut Mulut Turun)</b><br>
+            😐 <b>C: Manyun (Bibir Datar / Maju)</b><br>
+            😮 <b>D: Kaget (Mulut Terbuka)</b>
+        </p>
+        <div class="form-group">
+            <label for="username">Nama Lengkap / Username:</label>
+            <input type="text" id="username" placeholder="Contoh: Budi_X_BD1" required>
+        </div>
+        <button id="start-btn" class="btn-main" onclick="initGame()">Izinkan Kamera & Mulai 🚀</button>
+        <p id="cam-status" style="text-align: center; font-size: 12px; margin-top: 10px; color: #22c55e;">✅ Sistem AI Siap Digunakan!</p>
+    </div>
+
+    <!-- 2. LAYAR GAME -->
+    <div id="game-screen" class="screen">
+        <div class="game-header">
+            <div>Pemain: <span id="player-name" style="color: #38bdf8;">-</span></div>
+            <div>Soal: <span id="q-number">1</span>/10</div>
+            <div class="timer-box" id="timer-container">⏱️ <span id="timer-val">10</span>s</div>
+            <div>Skor: <span id="score-val">0</span></div>
+        </div>
+
+        <div class="camera-wrapper">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="expression-overlay" id="exp-detected">Menyiapkan Kamera...</div>
+        </div>
+
+        <div class="question-box" id="question-text">Loading Soal...</div>
+
+        <div class="options-grid">
+            <div class="opt-card" id="card-a">
+                <span class="opt-tag tag-a">A 😃 Senang</span>
+                <div id="opt-a-text">...</div>
+            </div>
+            <div class="opt-card" id="card-b">
+                <span class="opt-tag tag-b">B ☹️ Cemberut</span>
+                <div id="opt-b-text">...</div>
+            </div>
+            <div class="opt-card" id="card-c">
+                <span class="opt-tag tag-c">C 😐 Manyun</span>
+                <div id="opt-c-text">...</div>
+            </div>
+            <div class="opt-card" id="card-d">
+                <span class="opt-tag tag-d">D 😮 Kaget</span>
+                <div id="opt-d-text">...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. LAYAR HASIL -->
+    <div id="result-screen" class="screen">
+        <h2>🎉 Permainan Selesai!</h2>
+        <div class="result-box">
+            <p>Hasil Akhir Untuk: <b id="res-name"></b></p>
+            <div class="score-big" id="res-score">0</div>
+            <p>Jawaban Benar: <b id="res-correct" style="color: #22c55e;">0</b> dari 10 Soal</p>
+            <p id="status-email" class="status-msg">Mengirimkan hasil skor ke email...</p>
+        </div>
+        <button class="btn-main" onclick="restartGame()">Main Lagi 🔄</button>
+    </div>
+
+</div>
+
+<script>
+    const questions = [
+        { q: "1. Apa kepanjangan dari e-Commerce?", options: ["Electronic Commerce", "Easy Commerce", "Engine Commerce", "Everyday Commerce"], ans: "A" },
+        { q: "2. Pembayaran digital resmi dengan scan QR dinamakan...", options: ["Kuitansi", "QRIS", "Barter", "Wesel Pos"], ans: "B" },
+        { q: "3. Kegiatan mempromosikan produk lewat internet yaitu...", options: ["Brosur Cetak", "Door to Door", "Digital Marketing", "Pemasaran Tradisional"], ans: "C" },
+        { q: "4. Tempat/aplikasi bertemunya penjual dan pembeli online dinamakan...", options: ["Supermarket", "Pasar Tradisional", "Gudang", "Marketplace"], ans: "D" },
+        { q: "5. Istilah COD dalam pengiriman belanja online berarti...", options: ["Cash on Delivery", "Cost on Discount", "Call on Delivery", "Cash on Discount"], ans: "A" },
+        { q: "6. Contoh e-Wallet (Dompet Digital) populer di Indonesia...", options: ["Buku Tabungan", "OVO / DANA / GoPay", "Uang Kertas", "Kartu Pelajar"], ans: "B" },
+        { q: "7. Transaksi bisnis dari Penjual langsung ke Konsumen disingkat...", options: ["B2B", "C2C", "B2C", "O2O"], ans: "C" },
+        { q: "8. Diskon harga dalam kurun waktu singkat di online shop dinamakan...", options: ["Harga Normal", "Pre-Order", "Overprice", "Flash Sale"], ans: "D" },
+        { q: "9. Istilah untuk barang yang siap dikirim di gudang yaitu...", options: ["Ready Stock", "Pre-Order", "Out of Stock", "Sold Out"], ans: "A" },
+        { q: "10. Gambar visual di medsos untuk promosi produk dinamakan...", options: ["Nota", "Konten / Poster", "Spanduk Kain", "Resi"], ans: "B" }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+    let correctCount = 0;
+    let username = "";
+    let prepTimer = 10;
+    let answerTimer = 10;
+    let timerInterval = null;
+    let canAnswer = false;
+    let faceMesh = null;
+    let camera = null;
+
+    function setupFaceMesh() {
+        faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
+
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        faceMesh.onResults(onResults);
+    }
+
+    async function initGame() {
+        const inputName = document.getElementById("username").value.trim();
+        if (inputName === "") {
+            alert("Harap masukkan nama/username terlebih dahulu!");
+            return;
+        }
+
+        username = inputName;
+        document.getElementById("player-name").innerText = username;
+
+        setupFaceMesh();
+
+        const videoElement = document.getElementById("video");
+        
+        try {
+            camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    if (canAnswer && faceMesh) {
+                        await faceMesh.send({ image: videoElement });
+                    }
+                },
+                facingMode: 'user', // Memaksa penggunaan kamera depan di HP
+                width: 640,
+                height: 480
+            });
+
+            await camera.start();
+            switchScreen("game-screen");
+            loadQuestion();
+        } catch (err) {
+            alert("Gagal mengaktifkan kamera!\n\nPastikan:\n1. Buka via browser Chrome/Safari (Bukan via aplikasi WA)\n2. Tautan sudah menggunakan HTTPS\n3. Izin kamera telah diberikan.");
+        }
+    }
+
+    function onResults(results) {
+        if (!canAnswer || !results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+
+        const landmarks = results.multiFaceLandmarks[0];
+
+        const upperLip = landmarks[13];
+        const lowerLip = landmarks[14];
+        const leftCorner = landmarks[61];
+        const rightCorner = landmarks[291];
+        const nose = landmarks[1];
+
+        const mouthOpen = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y);
+        const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y);
+        const cornerAvgY = (leftCorner.y + rightCorner.y) / 2;
+        const cornerSmileDiff = nose.y - cornerAvgY;
+
+        let detectedChoice = "";
+        let expText = "";
+
+        if (mouthOpen > 0.08) {
+            detectedChoice = "D";
+            expText = "😮 Deteksi: Kaget (Pilihan D)";
+        } else if (mouthWidth > 0.38) {
+            detectedChoice = "A";
+            expText = "😃 Deteksi: Senang (Pilihan A)";
+        } else if (cornerSmileDiff < 0.13) {
+            detectedChoice = "B";
+            expText = "☹️ Deteksi: Cemberut (Pilihan B)";
+        } else if (mouthWidth < 0.28) {
+            detectedChoice = "C";
+            expText = "😐 Deteksi: Manyun (Pilihan C)";
+        } else {
+            expText = "👀 Tunjukkan ekspresi jawaban Anda...";
+        }
+
+        document.getElementById("exp-detected").innerText = expText;
+        highlightCard(detectedChoice);
+
+        if (detectedChoice !== "") {
+            submitAnswer(detectedChoice);
+        }
+    }
+
+    function highlightCard(choice) {
+        document.querySelectorAll('.opt-card').forEach(c => c.classList.remove('active-exp'));
+        if (choice === "A") document.getElementById("card-a").classList.add('active-exp');
+        if (choice === "B") document.getElementById("card-b").classList.add('active-exp');
+        if (choice === "C") document.getElementById("card-c").classList.add('active-exp');
+        if (choice === "D") document.getElementById("card-d").classList.add('active-exp');
+    }
+
+    function loadQuestion() {
+        canAnswer = false;
+        const qData = questions[currentQ];
+        document.getElementById("q-number").innerText = currentQ + 1;
+        document.getElementById("score-val").innerText = score;
+        document.getElementById("question-text").innerText = qData.q;
+
+        document.getElementById("opt-a-text").innerText = qData.options[0];
+        document.getElementById("opt-b-text").innerText = qData.options[1];
+        document.getElementById("opt-c-text").innerText = qData.options[2];
+        document.getElementById("opt-d-text").innerText = qData.options[3];
+
+        highlightCard("");
+
+        prepTimer = 10;
+        const timerContainer = document.getElementById("timer-container");
+        timerContainer.style.color = "#eab308";
+        document.getElementById("timer-val").innerText = prepTimer;
+        document.getElementById("exp-detected").innerText = "⏳ Persiapan: Baca soal & siap-siap...";
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            prepTimer--;
+            document.getElementById("timer-val").innerText = prepTimer;
+
+            if (prepTimer <= 0) {
+                clearInterval(timerInterval);
+                startAnsweringPhase();
+            }
+        }, 1000);
+    }
+
+    function startAnsweringPhase() {
+        canAnswer = true;
+        answerTimer = 10;
+        
+        const timerContainer = document.getElementById("timer-container");
+        timerContainer.style.color = "#f43f5e";
+        document.getElementById("timer-val").innerText = answerTimer;
+        document.getElementById("exp-detected").innerText = "🎬 AYO JAWAB! Tunjukkan ekspresi...";
+
+        timerInterval = setInterval(() => {
+            answerTimer--;
+            document.getElementById("timer-val").innerText = answerTimer;
+
+            if (answerTimer <= 0) {
+                clearInterval(timerInterval);
+                handleTimeout();
+            }
+        }, 1000);
+    }
+
+    function handleTimeout() {
+        if (!canAnswer) return;
+        canAnswer = false;
+        score -= 10;
+        document.getElementById("score-val").innerText = score;
+        document.getElementById("exp-detected").innerText = "⏰ WAKTU HABIS (-10 Poin)";
+        setTimeout(nextQuestion, 1500);
+    }
+
+    function submitAnswer(choice) {
+        if (!canAnswer) return;
+        canAnswer = false;
+        clearInterval(timerInterval);
+
+        const correctAns = questions[currentQ].ans;
+
+        if (choice === correctAns) {
+            score += 10;
+            correctCount++;
+            document.getElementById("exp-detected").innerText = "✅ JAWABAN BENAR! (+10 Poin)";
+        } else {
+            score -= 10;
+            document.getElementById("exp-detected").innerText = `❌ SALAH! Jawaban Benar: ${correctAns}`;
+        }
+
+        document.getElementById("score-val").innerText = score;
+        setTimeout(nextQuestion, 1500);
+    }
+
+    function nextQuestion() {
+        currentQ++;
+        if (currentQ < questions.length) {
+            loadQuestion();
+        } else {
+            endGame();
+        }
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        if (camera) camera.stop();
+
+        switchScreen("result-screen");
+        document.getElementById("res-name").innerText = username;
+        document.getElementById("res-score").innerText = score;
+        document.getElementById("res-correct").innerText = correctCount;
+
+        sendEmailResult();
+    }
+
+    function sendEmailResult() {
+        const statusText = document.getElementById("status-email");
+        statusText.innerText = "⏳ Memproses pengiriman skor ke email...";
+
+        const templateParams = {
+            to_email: "mujayyanah19@gmail.com",
+            player_name: username,
+            total_score: score,
+            correct_answers: correctCount,
+            total_questions: questions.length
+        };
+
+        emailjs.send("service_4215ues", "template_deeyrtr", templateParams)
+            .then(function(response) {
+                statusText.innerText = "✅ Hasil skor berhasil dikirim ke email (mujayyanah19@gmail.com)!";
+                statusText.style.color = "#22c55e";
+            }, function(error) {
+                statusText.innerText = "⚠️ Gagal mengirim email: " + JSON.stringify(error);
+                statusText.style.color = "#f43f5e";
+            });
+    }
+
+    function restartGame() {
+        location.reload();
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
