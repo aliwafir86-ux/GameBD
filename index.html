@@ -7,8 +7,7 @@
     <!-- EmailJS Library -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     
-    <!-- Google MediaPipe Camera & Face Mesh -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <!-- Google MediaPipe Face Mesh -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
     <script type="text/javascript">
@@ -218,7 +217,7 @@
             😃 <b>A: Senang (Tersenyum Lebar)</b><br>
             ☹️ <b>B: Cemberut (Sudut Mulut Turun)</b><br>
             😐 <b>C: Manyun (Bibir Datar / Maju)</b><br>
-            😮 <b>D: Kaget (Mulut Terbuka)</b>
+            😮 <b>D: Kaget (Mulut Terbuka Lebar)</b>
         </p>
         <div class="form-group">
             <label for="username">Nama Lengkap / Username:</label>
@@ -239,7 +238,7 @@
 
         <div class="camera-wrapper">
             <video id="video" autoplay playsinline muted></video>
-            <div class="expression-overlay" id="exp-detected">Menyiapkan Kamera...</div>
+            <div class="expression-overlay" id="exp-detected">Menyiapkan AI Wajah...</div>
         </div>
 
         <div class="question-box" id="question-text">Loading Soal...</div>
@@ -301,7 +300,8 @@
     let timerInterval = null;
     let canAnswer = false;
     let faceMesh = null;
-    let camera = null;
+    let isProcessing = false;
+    let streamInstance = null;
 
     function setupFaceMesh() {
         faceMesh = new FaceMesh({
@@ -331,67 +331,93 @@
         setupFaceMesh();
 
         const videoElement = document.getElementById("video");
-        
-        try {
-            camera = new Camera(videoElement, {
-                onFrame: async () => {
-                    if (canAnswer && faceMesh) {
-                        await faceMesh.send({ image: videoElement });
-                    }
-                },
-                facingMode: 'user', // Memaksa penggunaan kamera depan di HP
-                width: 640,
-                height: 480
-            });
 
-            await camera.start();
-            switchScreen("game-screen");
-            loadQuestion();
+        try {
+            streamInstance = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                audio: false
+            });
+            videoElement.srcObject = streamInstance;
+            
+            videoElement.onloadedmetadata = () => {
+                videoElement.play();
+                switchScreen("game-screen");
+                loadQuestion();
+                processVideoFrame();
+            };
         } catch (err) {
-            alert("Gagal mengaktifkan kamera!\n\nPastikan:\n1. Buka via browser Chrome/Safari (Bukan via aplikasi WA)\n2. Tautan sudah menggunakan HTTPS\n3. Izin kamera telah diberikan.");
+            alert("Gagal mengakses kamera! Pastikan izin kamera telah diberikan.");
         }
     }
 
+    async function processVideoFrame() {
+        const videoElement = document.getElementById("video");
+        
+        if (videoElement && videoElement.readyState >= 2 && faceMesh && !isProcessing) {
+            isProcessing = true;
+            await faceMesh.send({ image: videoElement });
+            isProcessing = false;
+        }
+        
+        requestAnimationFrame(processVideoFrame);
+    }
+
     function onResults(results) {
-        if (!canAnswer || !results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+            if (canAnswer) {
+                document.getElementById("exp-detected").innerText = "⚠️ Wajah Tidak Terdeteksi! Posisikan Wajah ke Kamera";
+            }
+            highlightCard("");
+            return;
+        }
 
         const landmarks = results.multiFaceLandmarks[0];
 
+        // Titik Landmark Kunci
         const upperLip = landmarks[13];
         const lowerLip = landmarks[14];
         const leftCorner = landmarks[61];
         const rightCorner = landmarks[291];
         const nose = landmarks[1];
+        const leftEye = landmarks[33];
+        const rightEye = landmarks[263];
 
-        const mouthOpen = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y);
-        const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y);
+        // Skala Relatif Wajah (Jarak antar mata)
+        const faceScale = Math.hypot(leftEye.x - rightEye.x, leftEye.y - rightEye.y);
+
+        // Jarak Terukur (Normalized)
+        const mouthOpen = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y) / faceScale;
+        const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y) / faceScale;
         const cornerAvgY = (leftCorner.y + rightCorner.y) / 2;
-        const cornerSmileDiff = nose.y - cornerAvgY;
+        const cornerSmileDiff = (nose.y - cornerAvgY) / faceScale;
 
         let detectedChoice = "";
         let expText = "";
 
-        if (mouthOpen > 0.08) {
+        // Deteksi ekspresi dengan perbandingan relatif
+        if (mouthOpen > 0.35) {
             detectedChoice = "D";
             expText = "😮 Deteksi: Kaget (Pilihan D)";
-        } else if (mouthWidth > 0.38) {
+        } else if (mouthWidth > 1.25) {
             detectedChoice = "A";
             expText = "😃 Deteksi: Senang (Pilihan A)";
-        } else if (cornerSmileDiff < 0.13) {
+        } else if (cornerSmileDiff < 0.45) {
             detectedChoice = "B";
             expText = "☹️ Deteksi: Cemberut (Pilihan B)";
-        } else if (mouthWidth < 0.28) {
+        } else if (mouthWidth < 0.85) {
             detectedChoice = "C";
             expText = "😐 Deteksi: Manyun (Pilihan C)";
         } else {
-            expText = "👀 Tunjukkan ekspresi jawaban Anda...";
+            expText = "👀 Tunjukkan ekspresi Anda secara jelas...";
         }
 
-        document.getElementById("exp-detected").innerText = expText;
-        highlightCard(detectedChoice);
+        if (canAnswer) {
+            document.getElementById("exp-detected").innerText = expText;
+            highlightCard(detectedChoice);
 
-        if (detectedChoice !== "") {
-            submitAnswer(detectedChoice);
+            if (detectedChoice !== "") {
+                submitAnswer(detectedChoice);
+            }
         }
     }
 
@@ -495,7 +521,9 @@
 
     function endGame() {
         clearInterval(timerInterval);
-        if (camera) camera.stop();
+        if (streamInstance) {
+            streamInstance.getTracks().forEach(track => track.stop());
+        }
 
         switchScreen("result-screen");
         document.getElementById("res-name").innerText = username;
