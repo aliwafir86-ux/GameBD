@@ -216,7 +216,7 @@
             2. Diberi waktu <b>10 detik menjawab</b> dengan menahan ekspresi pilihan selama 1 detik:<br><br>
             😃 <b>A: Senang (Tersenyum Lebar)</b><br>
             ☹️ <b>B: Cemberut (Sudut Mulut Turun)</b><br>
-            😐 <b>C: Manyun (Bibir Datar / Maju)</b><br>
+            😐 <b>C: Manyun (Bibir Datar / Kuncup)</b><br>
             😮 <b>D: Kaget (Mulut Terbuka Lebar)</b>
         </p>
         <div class="form-group">
@@ -303,10 +303,10 @@
     let isProcessing = false;
     let streamInstance = null;
 
-    // Tracker untuk menahan ekspresi
+    // Tracker Hold Ekspresi (Menahan pilihan selama 1 detik)
     let pendingChoice = "";
     let holdCounter = 0;
-    const REQUIRED_HOLD_FRAMES = 15; // Tahan ekspresi sekitar 1 detik
+    const REQUIRED_HOLD_FRAMES = 15; 
 
     function setupFaceMesh() {
         faceMesh = new FaceMesh({
@@ -379,7 +379,7 @@
 
         const landmarks = results.multiFaceLandmarks[0];
 
-        // Titik Landmark Kunci
+        // Titik Kunci landmark
         const upperLip = landmarks[13];
         const lowerLip = landmarks[14];
         const leftCorner = landmarks[61];
@@ -388,10 +388,10 @@
         const leftEye = landmarks[33];
         const rightEye = landmarks[263];
 
-        // Skala Relatif Wajah
+        // Skala Relatif Wajah berdasarkan jarak mata
         const faceScale = Math.hypot(leftEye.x - rightEye.x, leftEye.y - rightEye.y);
 
-        // Jarak Terukur (Normalized)
+        // Perhitungan Jarak Terukur (Normalized)
         const mouthOpen = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y) / faceScale;
         const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y) / faceScale;
         const cornerAvgY = (leftCorner.y + rightCorner.y) / 2;
@@ -400,22 +400,28 @@
         let detectedChoice = "";
         let expLabel = "";
 
-        // Kriteria Ekpresi
+        // Pilihan D: Kaget (Mulut Terbuka Lebar)
         if (mouthOpen > 0.38) {
             detectedChoice = "D";
             expLabel = "😮 Kaget (D)";
-        } else if (mouthWidth > 1.28) {
+        } 
+        // Pilihan A: Senang (Tersenyum Lebar)
+        else if (mouthWidth > 1.28) {
             detectedChoice = "A";
             expLabel = "😃 Senang (A)";
-        } else if (cornerSmileDiff < 0.42) {
+        } 
+        // Pilihan B: Cemberut (Sudut Mulut Turun)
+        else if (cornerSmileDiff < 0.42) {
             detectedChoice = "B";
             expLabel = "☹️ Cemberut (B)";
-        } else if (mouthWidth < 0.82) {
+        } 
+        // Pilihan C: Manyun (Bibir Datar / Kuncup)
+        else if (mouthWidth < 0.82) {
             detectedChoice = "C";
             expLabel = "😐 Manyun (C)";
         }
 
-        // LOGIKA HOLD / TAHAN JAWABAN
+        // KONFIRMASI JAWABAN DENGAN SISTEM HOLD
         if (detectedChoice !== "") {
             if (detectedChoice === pendingChoice) {
                 holdCounter++;
@@ -429,7 +435,6 @@
             const progress = Math.min(Math.round((holdCounter / REQUIRED_HOLD_FRAMES) * 100), 100);
             document.getElementById("exp-detected").innerText = `🎯 Tahan ekspresi ${expLabel}... (${progress}%)`;
 
-            // Kirim jawaban HANYA jika ekspresi ditahan sampai 100%
             if (holdCounter >= REQUIRED_HOLD_FRAMES) {
                 resetHold();
                 submitAnswer(detectedChoice);
