@@ -97,6 +97,7 @@
         button.btn-main:disabled {
             background: #475569;
             cursor: not-allowed;
+            opacity: 0.6;
         }
 
         button.btn-main:active {
@@ -213,12 +214,13 @@
         <h1>📸 Game Ekspresi Bisnis</h1>
         <p style="text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 13px;">
             <b>CARA BERMAIN:</b><br>
-            1. Tunjukkan ekspresi wajah untuk memilih opsi A, B, C, atau D.<br>
-            2. Tekan tombol <b>KIRIM JAWABAN</b> untuk mengunci pilihan Anda!<br><br>
-            😃 <b>A: Tersenyum Lebar</b><br>
-            ☹️ <b>B: Cemberut Jelas</b><br>
-            😐 <b>C: Bibir Kuncup / Manyun</b><br>
-            😮 <b>D: Mulut Terbuka Lebar</b>
+            1. Buat ekspresi secara <b>sengaja</b> untuk memilih pilihan.<br>
+            2. Wajah netral/diam <b>TIDAK AKAN</b> memilih apa-apa.<br>
+            3. Tekan tombol <b>KIRIM JAWABAN</b> jika sudah yakin!<br><br>
+            😃 <b>A: Senang (Senyum Lebar)</b><br>
+            ☹️ <b>B: Cemberut (Turunkan Sudut Bibir)</b><br>
+            😐 <b>C: Manyun (Kuncupkan Bibir)</b><br>
+            😮 <b>D: Kaget (Buka Mulut Lebar)</b>
         </p>
         <div class="form-group">
             <label for="username">Nama Lengkap / Username:</label>
@@ -232,7 +234,7 @@
         <div class="game-header">
             <div>Pemain: <span id="player-name" style="color: #38bdf8;">-</span></div>
             <div>Soal: <span id="q-number">1</span>/10</div>
-            <div class="timer-box" id="timer-container">⏱️ <span id="timer-val">15</span>s</div>
+            <div class="timer-box" id="timer-container">⏱️ <span id="timer-val">20</span>s</div>
             <div>Skor: <span id="score-val">0</span></div>
         </div>
 
@@ -262,7 +264,7 @@
             </div>
         </div>
 
-        <button id="submit-btn" class="btn-main" onclick="confirmAnswer()" disabled>Pilih Jawaban Dulu...</button>
+        <button id="submit-btn" class="btn-main" onclick="confirmAnswer()" disabled>Buat Ekspresi / Klik Pilihan...</button>
     </div>
 
     <!-- 3. LAYAR HASIL -->
@@ -297,13 +299,13 @@
     let score = 0;
     let correctCount = 0;
     let username = "";
-    let answerTimer = 15;
+    let answerTimer = 20;
     let timerInterval = null;
     let canAnswer = false;
     let faceMesh = null;
     let isProcessing = false;
     let streamInstance = null;
-    let selectedChoice = ""; // Menyimpan pilihan sementara pemain
+    let selectedChoice = "";
 
     function setupFaceMesh() {
         faceMesh = new FaceMesh({
@@ -313,8 +315,8 @@
         faceMesh.setOptions({
             maxNumFaces: 1,
             refineLandmarks: true,
-            minDetectionConfidence: 0.6,
-            minTrackingConfidence: 0.6
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
         });
 
         faceMesh.onResults(onResults);
@@ -366,42 +368,45 @@
         if (!canAnswer) return;
 
         if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-            document.getElementById("exp-detected").innerText = "⚠️ Wajah Tidak Terdeteksi";
+            document.getElementById("exp-detected").innerText = "⚠️ Posisikan Wajah ke Kamera";
             return;
         }
 
         const landmarks = results.multiFaceLandmarks[0];
 
+        // Titik Landmark Penting
         const upperLip = landmarks[13];
         const lowerLip = landmarks[14];
         const leftCorner = landmarks[61];
         const rightCorner = landmarks[291];
         const nose = landmarks[1];
-        const leftEye = landmarks[33];
-        const rightEye = landmarks[263];
+        const chin = landmarks[152];
 
-        const faceScale = Math.hypot(leftEye.x - rightEye.x, leftEye.y - rightEye.y);
-
-        const mouthOpen = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y) / faceScale;
-        const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y) / faceScale;
+        // Hitung jarak terstandar berdasarkan tinggi hidung-dagu
+        const faceHeight = Math.hypot(nose.x - chin.x, nose.y - chin.y);
+        
+        const mouthOpenRatio = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y) / faceHeight;
+        const mouthWidthRatio = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y) / faceHeight;
         const cornerAvgY = (leftCorner.y + rightCorner.y) / 2;
-        const cornerSmileDiff = (nose.y - cornerAvgY) / faceScale;
+        const smileDiffRatio = (nose.y - cornerAvgY) / faceHeight;
 
         let detected = "";
 
-        // Threshold diperketat agar tidak mudah terpicu saat wajah diam (netral)
-        if (mouthOpen > 0.45) {
-            detected = "D";
-        } else if (mouthWidth > 1.35) {
-            detected = "A";
-        } else if (cornerSmileDiff < 0.35) { // Hanya B jika sudut bibir benar-benar melengkung turun secara ekstrim
-            detected = "B";
-        } else if (mouthWidth < 0.75) {
-            detected = "C";
+        // THRESHOLD SANGAT STRICT (TIDAK AKAN TERUJI SAAT NETRAL)
+        if (mouthOpenRatio > 0.40) {
+            detected = "D"; // Kaget (Mulut sangat terbuka)
+        } else if (mouthWidthRatio > 1.25) {
+            detected = "A"; // Senang (Senyum sangat lebar)
+        } else if (smileDiffRatio < -0.65) {
+            detected = "B"; // Cemberut (Hanya jika sudut bibir benar-benar ditarik turun)
+        } else if (mouthWidthRatio < 0.65 && mouthOpenRatio < 0.15) {
+            detected = "C"; // Manyun (Bibir kuncup rapat)
         }
 
         if (detected !== "") {
-            manualSelect(detected); // Hanya mengubah highlight pilihan di layar
+            manualSelect(detected);
+        } else if (selectedChoice === "") {
+            document.getElementById("exp-detected").innerText = "😐 Wajah Netral (Silakan Tunjukkan Ekspresi)";
         }
     }
 
@@ -448,11 +453,11 @@
         
         const btn = document.getElementById("submit-btn");
         btn.disabled = true;
-        btn.innerText = "Pilih Jawaban Dulu...";
+        btn.innerText = "Buat Ekspresi / Klik Pilihan...";
 
-        document.getElementById("exp-detected").innerText = "Tunjukkan ekspresi atau klik opsi...";
+        document.getElementById("exp-detected").innerText = "😐 Wajah Netral (Silakan Tunjukkan Ekspresi)";
 
-        answerTimer = 15;
+        answerTimer = 20;
         document.getElementById("timer-val").innerText = answerTimer;
 
         clearInterval(timerInterval);
