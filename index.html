@@ -215,7 +215,7 @@
             1. Diberi waktu <b>10 detik persiapan</b> untuk membaca soal.<br>
             2. Diberi waktu <b>10 detik menjawab</b> menggunakan ekspresi wajah:<br><br>
             😃 <b>A: Senang (Tersenyum Lebar)</b><br>
-            ☹️ <b>B: Cemberut (Sudut Mulut Turun)</b><br>
+            ☹️ <b>B: Cemberut (Sudut Mulut Turun / Sedih)</b><br>
             😐 <b>C: Manyun (Bibir Datar / Maju)</b><br>
             😮 <b>D: Kaget (Mulut Terbuka Lebar)</b>
         </p>
@@ -365,7 +365,7 @@
     function onResults(results) {
         if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
             if (canAnswer) {
-                document.getElementById("exp-detected").innerText = "⚠️ Wajah Tidak Terdeteksi! Posisikan Wajah ke Kamera";
+                document.getElementById("exp-detected").innerText = "⚠️ Posisikan Wajah ke Kamera";
             }
             highlightCard("");
             return;
@@ -382,7 +382,7 @@
         const leftEye = landmarks[33];
         const rightEye = landmarks[263];
 
-        // Skala Relatif Wajah (Jarak antar mata)
+        // Skala Relatif Wajah
         const faceScale = Math.hypot(leftEye.x - rightEye.x, leftEye.y - rightEye.y);
 
         // Jarak Terukur (Normalized)
@@ -394,21 +394,28 @@
         let detectedChoice = "";
         let expText = "";
 
-        // Deteksi ekspresi dengan perbandingan relatif
+        // Pilihan D: Kaget (Mulut Terbuka Lebar)
         if (mouthOpen > 0.35) {
             detectedChoice = "D";
             expText = "😮 Deteksi: Kaget (Pilihan D)";
-        } else if (mouthWidth > 1.25) {
+        } 
+        // Pilihan A: Senang (Tersenyum Lebar)
+        else if (mouthWidth > 1.25) {
             detectedChoice = "A";
             expText = "😃 Deteksi: Senang (Pilihan A)";
-        } else if (cornerSmileDiff < 0.45) {
+        } 
+        // Pilihan B: Cemberut (Sudut Mulut Turun)
+        else if (cornerSmileDiff < 0.45) {
             detectedChoice = "B";
             expText = "☹️ Deteksi: Cemberut (Pilihan B)";
-        } else if (mouthWidth < 0.85) {
+        } 
+        // Pilihan C: Manyun (Bibir Datar / Kuncup)
+        else if (mouthWidth < 0.85) {
             detectedChoice = "C";
             expText = "😐 Deteksi: Manyun (Pilihan C)";
-        } else {
-            expText = "👀 Tunjukkan ekspresi Anda secara jelas...";
+        } 
+        else {
+            expText = "👀 Tunjukkan ekspresi Anda (A/B/C/D)...";
         }
 
         if (canAnswer) {
