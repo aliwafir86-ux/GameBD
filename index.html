@@ -213,9 +213,9 @@
         <p style="text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 13px;">
             <b>CARA BERMAIN:</b><br>
             1. Diberi waktu <b>10 detik persiapan</b> untuk membaca soal.<br>
-            2. Diberi waktu <b>10 detik menjawab</b> menggunakan ekspresi wajah:<br><br>
+            2. Diberi waktu <b>10 detik menjawab</b> dengan menahan ekspresi pilihan selama 1 detik:<br><br>
             😃 <b>A: Senang (Tersenyum Lebar)</b><br>
-            ☹️ <b>B: Cemberut (Sudut Mulut Turun / Sedih)</b><br>
+            ☹️ <b>B: Cemberut (Sudut Mulut Turun)</b><br>
             😐 <b>C: Manyun (Bibir Datar / Maju)</b><br>
             😮 <b>D: Kaget (Mulut Terbuka Lebar)</b>
         </p>
@@ -303,6 +303,11 @@
     let isProcessing = false;
     let streamInstance = null;
 
+    // Tracker untuk menahan ekspresi
+    let pendingChoice = "";
+    let holdCounter = 0;
+    const REQUIRED_HOLD_FRAMES = 15; // Tahan ekspresi sekitar 1 detik
+
     function setupFaceMesh() {
         faceMesh = new FaceMesh({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
@@ -363,11 +368,12 @@
     }
 
     function onResults(results) {
+        if (!canAnswer) return;
+
         if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-            if (canAnswer) {
-                document.getElementById("exp-detected").innerText = "⚠️ Posisikan Wajah ke Kamera";
-            }
+            document.getElementById("exp-detected").innerText = "⚠️ Posisikan Wajah ke Kamera";
             highlightCard("");
+            resetHold();
             return;
         }
 
@@ -392,40 +398,52 @@
         const cornerSmileDiff = (nose.y - cornerAvgY) / faceScale;
 
         let detectedChoice = "";
-        let expText = "";
+        let expLabel = "";
 
-        // Pilihan D: Kaget (Mulut Terbuka Lebar)
-        if (mouthOpen > 0.35) {
+        // Kriteria Ekpresi
+        if (mouthOpen > 0.38) {
             detectedChoice = "D";
-            expText = "😮 Deteksi: Kaget (Pilihan D)";
-        } 
-        // Pilihan A: Senang (Tersenyum Lebar)
-        else if (mouthWidth > 1.25) {
+            expLabel = "😮 Kaget (D)";
+        } else if (mouthWidth > 1.28) {
             detectedChoice = "A";
-            expText = "😃 Deteksi: Senang (Pilihan A)";
-        } 
-        // Pilihan B: Cemberut (Sudut Mulut Turun)
-        else if (cornerSmileDiff < 0.45) {
+            expLabel = "😃 Senang (A)";
+        } else if (cornerSmileDiff < 0.42) {
             detectedChoice = "B";
-            expText = "☹️ Deteksi: Cemberut (Pilihan B)";
-        } 
-        // Pilihan C: Manyun (Bibir Datar / Kuncup)
-        else if (mouthWidth < 0.85) {
+            expLabel = "☹️ Cemberut (B)";
+        } else if (mouthWidth < 0.82) {
             detectedChoice = "C";
-            expText = "😐 Deteksi: Manyun (Pilihan C)";
-        } 
-        else {
-            expText = "👀 Tunjukkan ekspresi Anda (A/B/C/D)...";
+            expLabel = "😐 Manyun (C)";
         }
 
-        if (canAnswer) {
-            document.getElementById("exp-detected").innerText = expText;
+        // LOGIKA HOLD / TAHAN JAWABAN
+        if (detectedChoice !== "") {
+            if (detectedChoice === pendingChoice) {
+                holdCounter++;
+            } else {
+                pendingChoice = detectedChoice;
+                holdCounter = 1;
+            }
+
             highlightCard(detectedChoice);
 
-            if (detectedChoice !== "") {
+            const progress = Math.min(Math.round((holdCounter / REQUIRED_HOLD_FRAMES) * 100), 100);
+            document.getElementById("exp-detected").innerText = `🎯 Tahan ekspresi ${expLabel}... (${progress}%)`;
+
+            // Kirim jawaban HANYA jika ekspresi ditahan sampai 100%
+            if (holdCounter >= REQUIRED_HOLD_FRAMES) {
+                resetHold();
                 submitAnswer(detectedChoice);
             }
+        } else {
+            resetHold();
+            highlightCard("");
+            document.getElementById("exp-detected").innerText = "👀 Tunjukkan ekspresi pilihan Anda (A/B/C/D)...";
         }
+    }
+
+    function resetHold() {
+        pendingChoice = "";
+        holdCounter = 0;
     }
 
     function highlightCard(choice) {
@@ -438,6 +456,8 @@
 
     function loadQuestion() {
         canAnswer = false;
+        resetHold();
+
         const qData = questions[currentQ];
         document.getElementById("q-number").innerText = currentQ + 1;
         document.getElementById("score-val").innerText = score;
@@ -491,6 +511,7 @@
     function handleTimeout() {
         if (!canAnswer) return;
         canAnswer = false;
+        resetHold();
         score -= 10;
         document.getElementById("score-val").innerText = score;
         document.getElementById("exp-detected").innerText = "⏰ WAKTU HABIS (-10 Poin)";
