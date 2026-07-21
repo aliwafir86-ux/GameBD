@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Game Ekspresi Bisnis Digital</title>
-    <!-- EmailJS Library -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-    
-    <!-- Google MediaPipe Face Mesh -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
     <script type="text/javascript">
@@ -94,6 +91,12 @@
             border-radius: 10px;
             cursor: pointer;
             transition: 0.2s;
+            margin-top: 10px;
+        }
+
+        button.btn-main:disabled {
+            background: #475569;
+            cursor: not-allowed;
         }
 
         button.btn-main:active {
@@ -117,7 +120,7 @@
         .camera-wrapper {
             position: relative;
             width: 100%;
-            height: 220px;
+            height: 200px;
             background: #000;
             border-radius: 12px;
             overflow: hidden;
@@ -172,16 +175,14 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            transition: all 0.3s ease;
-            pointer-events: none;
-            opacity: 0.8;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .opt-card.active-exp {
             border-color: #38bdf8;
             background: #1e3a5f;
             box-shadow: 0 0 15px #38bdf8;
-            opacity: 1;
             transform: scale(1.02);
         }
 
@@ -212,19 +213,18 @@
         <h1>📸 Game Ekspresi Bisnis</h1>
         <p style="text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 13px;">
             <b>CARA BERMAIN:</b><br>
-            1. Diberi waktu <b>10 detik persiapan</b> untuk membaca soal.<br>
-            2. Diberi waktu <b>10 detik menjawab</b> dengan menahan ekspresi pilihan selama 1 detik:<br><br>
-            😃 <b>A: Senang (Tersenyum Lebar)</b><br>
-            ☹️ <b>B: Cemberut (Sudut Mulut Turun)</b><br>
-            😐 <b>C: Manyun (Bibir Datar / Kuncup)</b><br>
-            😮 <b>D: Kaget (Mulut Terbuka Lebar)</b>
+            1. Tunjukkan ekspresi wajah untuk memilih opsi A, B, C, atau D.<br>
+            2. Tekan tombol <b>KIRIM JAWABAN</b> untuk mengunci pilihan Anda!<br><br>
+            😃 <b>A: Tersenyum Lebar</b><br>
+            ☹️ <b>B: Cemberut Jelas</b><br>
+            😐 <b>C: Bibir Kuncup / Manyun</b><br>
+            😮 <b>D: Mulut Terbuka Lebar</b>
         </p>
         <div class="form-group">
             <label for="username">Nama Lengkap / Username:</label>
             <input type="text" id="username" placeholder="Contoh: Budi_X_BD1" required>
         </div>
         <button id="start-btn" class="btn-main" onclick="initGame()">Izinkan Kamera & Mulai 🚀</button>
-        <p id="cam-status" style="text-align: center; font-size: 12px; margin-top: 10px; color: #22c55e;">✅ Sistem AI Siap Digunakan!</p>
     </div>
 
     <!-- 2. LAYAR GAME -->
@@ -232,35 +232,37 @@
         <div class="game-header">
             <div>Pemain: <span id="player-name" style="color: #38bdf8;">-</span></div>
             <div>Soal: <span id="q-number">1</span>/10</div>
-            <div class="timer-box" id="timer-container">⏱️ <span id="timer-val">10</span>s</div>
+            <div class="timer-box" id="timer-container">⏱️ <span id="timer-val">15</span>s</div>
             <div>Skor: <span id="score-val">0</span></div>
         </div>
 
         <div class="camera-wrapper">
             <video id="video" autoplay playsinline muted></video>
-            <div class="expression-overlay" id="exp-detected">Menyiapkan AI Wajah...</div>
+            <div class="expression-overlay" id="exp-detected">Posisikan wajah...</div>
         </div>
 
         <div class="question-box" id="question-text">Loading Soal...</div>
 
         <div class="options-grid">
-            <div class="opt-card" id="card-a">
+            <div class="opt-card" id="card-a" onclick="manualSelect('A')">
                 <span class="opt-tag tag-a">A 😃 Senang</span>
                 <div id="opt-a-text">...</div>
             </div>
-            <div class="opt-card" id="card-b">
+            <div class="opt-card" id="card-b" onclick="manualSelect('B')">
                 <span class="opt-tag tag-b">B ☹️ Cemberut</span>
                 <div id="opt-b-text">...</div>
             </div>
-            <div class="opt-card" id="card-c">
+            <div class="opt-card" id="card-c" onclick="manualSelect('C')">
                 <span class="opt-tag tag-c">C 😐 Manyun</span>
                 <div id="opt-c-text">...</div>
             </div>
-            <div class="opt-card" id="card-d">
+            <div class="opt-card" id="card-d" onclick="manualSelect('D')">
                 <span class="opt-tag tag-d">D 😮 Kaget</span>
                 <div id="opt-d-text">...</div>
             </div>
         </div>
+
+        <button id="submit-btn" class="btn-main" onclick="confirmAnswer()" disabled>Pilih Jawaban Dulu...</button>
     </div>
 
     <!-- 3. LAYAR HASIL -->
@@ -295,18 +297,13 @@
     let score = 0;
     let correctCount = 0;
     let username = "";
-    let prepTimer = 10;
-    let answerTimer = 10;
+    let answerTimer = 15;
     let timerInterval = null;
     let canAnswer = false;
     let faceMesh = null;
     let isProcessing = false;
     let streamInstance = null;
-
-    // Tracker Hold Ekspresi (Menahan pilihan selama 1 detik)
-    let pendingChoice = "";
-    let holdCounter = 0;
-    const REQUIRED_HOLD_FRAMES = 15; 
+    let selectedChoice = ""; // Menyimpan pilihan sementara pemain
 
     function setupFaceMesh() {
         faceMesh = new FaceMesh({
@@ -316,8 +313,8 @@
         faceMesh.setOptions({
             maxNumFaces: 1,
             refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
         });
 
         faceMesh.onResults(onResults);
@@ -357,13 +354,11 @@
 
     async function processVideoFrame() {
         const videoElement = document.getElementById("video");
-        
         if (videoElement && videoElement.readyState >= 2 && faceMesh && !isProcessing) {
             isProcessing = true;
             await faceMesh.send({ image: videoElement });
             isProcessing = false;
         }
-        
         requestAnimationFrame(processVideoFrame);
     }
 
@@ -371,15 +366,12 @@
         if (!canAnswer) return;
 
         if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-            document.getElementById("exp-detected").innerText = "⚠️ Posisikan Wajah ke Kamera";
-            highlightCard("");
-            resetHold();
+            document.getElementById("exp-detected").innerText = "⚠️ Wajah Tidak Terdeteksi";
             return;
         }
 
         const landmarks = results.multiFaceLandmarks[0];
 
-        // Titik Kunci landmark
         const upperLip = landmarks[13];
         const lowerLip = landmarks[14];
         const leftCorner = landmarks[61];
@@ -388,67 +380,46 @@
         const leftEye = landmarks[33];
         const rightEye = landmarks[263];
 
-        // Skala Relatif Wajah berdasarkan jarak mata
         const faceScale = Math.hypot(leftEye.x - rightEye.x, leftEye.y - rightEye.y);
 
-        // Perhitungan Jarak Terukur (Normalized)
         const mouthOpen = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y) / faceScale;
         const mouthWidth = Math.hypot(leftCorner.x - rightCorner.x, leftCorner.y - rightCorner.y) / faceScale;
         const cornerAvgY = (leftCorner.y + rightCorner.y) / 2;
         const cornerSmileDiff = (nose.y - cornerAvgY) / faceScale;
 
-        let detectedChoice = "";
-        let expLabel = "";
+        let detected = "";
 
-        // Pilihan D: Kaget (Mulut Terbuka Lebar)
-        if (mouthOpen > 0.38) {
-            detectedChoice = "D";
-            expLabel = "😮 Kaget (D)";
-        } 
-        // Pilihan A: Senang (Tersenyum Lebar)
-        else if (mouthWidth > 1.28) {
-            detectedChoice = "A";
-            expLabel = "😃 Senang (A)";
-        } 
-        // Pilihan B: Cemberut (Sudut Mulut Turun)
-        else if (cornerSmileDiff < 0.42) {
-            detectedChoice = "B";
-            expLabel = "☹️ Cemberut (B)";
-        } 
-        // Pilihan C: Manyun (Bibir Datar / Kuncup)
-        else if (mouthWidth < 0.82) {
-            detectedChoice = "C";
-            expLabel = "😐 Manyun (C)";
+        // Threshold diperketat agar tidak mudah terpicu saat wajah diam (netral)
+        if (mouthOpen > 0.45) {
+            detected = "D";
+        } else if (mouthWidth > 1.35) {
+            detected = "A";
+        } else if (cornerSmileDiff < 0.35) { // Hanya B jika sudut bibir benar-benar melengkung turun secara ekstrim
+            detected = "B";
+        } else if (mouthWidth < 0.75) {
+            detected = "C";
         }
 
-        // KONFIRMASI JAWABAN DENGAN SISTEM HOLD
-        if (detectedChoice !== "") {
-            if (detectedChoice === pendingChoice) {
-                holdCounter++;
-            } else {
-                pendingChoice = detectedChoice;
-                holdCounter = 1;
-            }
-
-            highlightCard(detectedChoice);
-
-            const progress = Math.min(Math.round((holdCounter / REQUIRED_HOLD_FRAMES) * 100), 100);
-            document.getElementById("exp-detected").innerText = `🎯 Tahan ekspresi ${expLabel}... (${progress}%)`;
-
-            if (holdCounter >= REQUIRED_HOLD_FRAMES) {
-                resetHold();
-                submitAnswer(detectedChoice);
-            }
-        } else {
-            resetHold();
-            highlightCard("");
-            document.getElementById("exp-detected").innerText = "👀 Tunjukkan ekspresi pilihan Anda (A/B/C/D)...";
+        if (detected !== "") {
+            manualSelect(detected); // Hanya mengubah highlight pilihan di layar
         }
     }
 
-    function resetHold() {
-        pendingChoice = "";
-        holdCounter = 0;
+    function manualSelect(choice) {
+        selectedChoice = choice;
+        highlightCard(choice);
+        
+        const btn = document.getElementById("submit-btn");
+        btn.disabled = false;
+        btn.innerText = `Kirim Jawaban (${choice}) 🚀`;
+
+        let expName = "";
+        if(choice === "A") expName = "😃 Senang (A)";
+        if(choice === "B") expName = "☹️ Cemberut (B)";
+        if(choice === "C") expName = "😐 Manyun (C)";
+        if(choice === "D") expName = "😮 Kaget (D)";
+        
+        document.getElementById("exp-detected").innerText = `Terpilih: ${expName}`;
     }
 
     function highlightCard(choice) {
@@ -460,9 +431,9 @@
     }
 
     function loadQuestion() {
-        canAnswer = false;
-        resetHold();
-
+        canAnswer = true;
+        selectedChoice = "";
+        
         const qData = questions[currentQ];
         document.getElementById("q-number").innerText = currentQ + 1;
         document.getElementById("score-val").innerText = score;
@@ -474,34 +445,17 @@
         document.getElementById("opt-d-text").innerText = qData.options[3];
 
         highlightCard("");
+        
+        const btn = document.getElementById("submit-btn");
+        btn.disabled = true;
+        btn.innerText = "Pilih Jawaban Dulu...";
 
-        prepTimer = 10;
-        const timerContainer = document.getElementById("timer-container");
-        timerContainer.style.color = "#eab308";
-        document.getElementById("timer-val").innerText = prepTimer;
-        document.getElementById("exp-detected").innerText = "⏳ Persiapan: Baca soal & siap-siap...";
+        document.getElementById("exp-detected").innerText = "Tunjukkan ekspresi atau klik opsi...";
+
+        answerTimer = 15;
+        document.getElementById("timer-val").innerText = answerTimer;
 
         clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            prepTimer--;
-            document.getElementById("timer-val").innerText = prepTimer;
-
-            if (prepTimer <= 0) {
-                clearInterval(timerInterval);
-                startAnsweringPhase();
-            }
-        }, 1000);
-    }
-
-    function startAnsweringPhase() {
-        canAnswer = true;
-        answerTimer = 10;
-        
-        const timerContainer = document.getElementById("timer-container");
-        timerContainer.style.color = "#f43f5e";
-        document.getElementById("timer-val").innerText = answerTimer;
-        document.getElementById("exp-detected").innerText = "🎬 AYO JAWAB! Tunjukkan ekspresi...";
-
         timerInterval = setInterval(() => {
             answerTimer--;
             document.getElementById("timer-val").innerText = answerTimer;
@@ -513,24 +467,14 @@
         }, 1000);
     }
 
-    function handleTimeout() {
-        if (!canAnswer) return;
-        canAnswer = false;
-        resetHold();
-        score -= 10;
-        document.getElementById("score-val").innerText = score;
-        document.getElementById("exp-detected").innerText = "⏰ WAKTU HABIS (-10 Poin)";
-        setTimeout(nextQuestion, 1500);
-    }
-
-    function submitAnswer(choice) {
-        if (!canAnswer) return;
+    function confirmAnswer() {
+        if (!canAnswer || selectedChoice === "") return;
         canAnswer = false;
         clearInterval(timerInterval);
 
         const correctAns = questions[currentQ].ans;
 
-        if (choice === correctAns) {
+        if (selectedChoice === correctAns) {
             score += 10;
             correctCount++;
             document.getElementById("exp-detected").innerText = "✅ JAWABAN BENAR! (+10 Poin)";
@@ -540,6 +484,15 @@
         }
 
         document.getElementById("score-val").innerText = score;
+        setTimeout(nextQuestion, 1500);
+    }
+
+    function handleTimeout() {
+        if (!canAnswer) return;
+        canAnswer = false;
+        score -= 10;
+        document.getElementById("score-val").innerText = score;
+        document.getElementById("exp-detected").innerText = "⏰ WAKTU HABIS (-10 Poin)";
         setTimeout(nextQuestion, 1500);
     }
 
